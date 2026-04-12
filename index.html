@@ -522,22 +522,23 @@
 
     el.btnConnect.addEventListener('click', connectMqtt);
 
-    el.btnSend.addEventListener('click', () => {
-      publishJson({
-        cmd: 'set',
-        mode: state.mode,
-        temp: state.temp,
-        airflow: state.airflow
-      });
-    });
+el.btnSend.addEventListener('click', () => {
+  const payload = {
+    cmd: 'set',
+    mode: state.mode,
+    temp: state.temp
+  };
 
-    el.btnStop.addEventListener('click', () => {
-      publishJson({ cmd: 'stop' });
-    });
+  if (state.mode === 'heat') {
+    payload.fan = state.airflow;
+    payload.lastControl = 'fan';
+  } else {
+    payload.swing = state.airflow;
+    payload.lastControl = 'swing';
+  }
 
-    [el.brokerUrl, el.username, el.password, el.topicCmd, el.topicState].forEach(input => {
-      input.addEventListener('change', saveSettings);
-    });
+  publishJson(payload);
+});
 
     loadSettings();
     updateUi();
