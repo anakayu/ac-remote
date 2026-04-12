@@ -456,8 +456,7 @@
           log(`subscribe ${topicState}`);
         });
       });
-      });
-
+   
       client.on('message', (topic, payload) => {
         const text = payload.toString();
         log(`recv ${topic} <= ${text}`);
