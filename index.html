@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panasonic Aircon MQTT Remote</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    :root {
+      --bg: #e9ecef;
+      --panel: #f7f7f7;
+      --screen: #c9d09a;
+      --text: #222;
+      --muted: #666;
+      --cool: #bfe8ff;
+      --dry: #d7f1c8;
+      --heat: #ffd6b8;
+      --send: #d9ebff;
+      --stop: #ffe3e3;
+      --border: rgba(0,0,0,0.08);
+      --shadow: 0 8px 24px rgba(0,0,0,0.15);
+      --btnshadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .remote {
+      max-width: 420px;
+      margin: 0 auto;
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 18px 16px 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .screen {
+      background: var(--screen);
+      color: #111;
+      border-radius: 12px;
+      padding: 14px 12px;
+      margin-bottom: 18px;
+      min-height: 150px;
+      text-align: left;
+      box-shadow: inset 0 0 0 2px var(--border);
+    }
+
+    .statusRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #2d2d2d;
+    }
+
+    .statusDot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #999;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .statusDot.ok { background: #2fb344; }
+    .statusDot.ng { background: #e03131; }
+
+    .modeLine {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .tempLine {
+      font-size: 54px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .tempLine span {
+      font-size: 24px;
+      font-weight: normal;
+    }
+
+    .infoLine {
+      margin-top: 10px;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: stretch;
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 10px;
+      font-size: 24px;
+      background: #fff;
+      color: var(--text);
+      box-shadow: var(--btnshadow);
+      cursor: pointer;
+    }
+
+    button:active { transform: scale(0.98); }
+    button.active { outline: 3px solid rgba(0,0,0,0.18); }
+
+    .cool { background: var(--cool); }
+    .dry { background: var(--dry); }
+    .heat { background: var(--heat); }
+    .sub { background: #fff; font-size: 22px; }
+    .tempBtn { font-size: 30px; font-weight: bold; padding: 12px 10px; }
+    .tempStack {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+    }
+    .tempValue {
+      background: #fff;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 26px;
+      font-weight: bold;
+      padding: 14px 10px;
+      box-shadow: var(--btnshadow);
+    }
+    .stop {
+      background: var(--stop);
+      border: 2px solid #f08aa0;
+      font-size: 30px;
+      font-weight: bold;
+    }
+    .send {
+      background: var(--send);
+      font-weight: bold;
+    }
+    .smallLabel {
+      display: block;
+      font-size: 14px;
+      color: #555;
+      margin-top: 4px;
+    }
+    .note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 16px;
+    }
+    .brand {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #1d2a57;
+    }
+    .settings {
+      margin-top: 16px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--btnshadow);
+    }
+    .settings h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .settings label {
+      display: block;
+      font-size: 13px;
+      margin: 8px 0 4px;
+      color: #444;
+    }
+    .settings input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .settings .mini {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .log {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #333;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      max-height: 160px;
+      overflow: auto;
+      box-shadow: var(--btnshadow);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="remote">
+    <div class="screen">
+      <div class="statusRow">
+        <div><span id="connDot" class="statusDot ng"></span><span id="connText">未接続</span></div>
+        <div id="lastEvent">state待機中</div>
+      </div>
+      <div class="modeLine" id="modeLabel">冷房</div>
+      <div class="tempLine"><span id="tempValue">25</span><span>.0℃</span></div>
+      <div class="infoLine">
+        <div>風向/風量 <span id="airflowLabel">自動</span></div>
+        <div id="topicLabel">home/ac/cmd</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="btnCool" class="cool active">冷房</button>
+      <button id="btnDry" class="dry">除湿</button>
+      <button id="btnHeat" class="heat">暖房</button>
+    </div>
+
+    <div class="row">
+      <button id="btnAirflow" class="sub">風向/風量<span class="smallLabel">切替</span></button>
+      <div class="tempStack">
+        <button id="btnTempUp" class="tempBtn">▲</button>
+        <div class="tempValue"><span id="tempDisplay">25</span>℃</div>
+        <button id="btnTempDown" class="tempBtn">▼</button>
+      </div>
+      <button id="btnConnect" class="sub">接続<span class="smallLabel">MQTT</span></button>
+    </div>
+
+    <div class="row">
+      <button id="btnSend" class="send">送信</button>
+    </div>
+
+    <div class="row">
+      <button id="btnStop" class="stop">停止</button>
+    </div>
+
+    <div class="settings">
+      <h3>MQTT設定</h3>
+      <label for="brokerUrl">Broker URL</label>
+      <input id="brokerUrl" type="text" placeholder="wss://xxxxx.s1.eu.hivemq.cloud:8884/mqtt" />
+
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="web_ui_sender" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="MQTT password" />
+
+      <label for="topicCmd">Command Topic</label>
+      <input id="topicCmd" type="text" value="home/ac/cmd" />
+
+      <label for="topicState">State Topic</label>
+      <input id="topicState" type="text" value="home/ac/state" />
+
+      <div class="mini">
+        GitHub Pages向けの試作用。<br>
+        初回は右上の接続ボタンでMQTTへ接続してから使う。<br>
+        ブラウザ直MQTTなので、公開運用では資格情報の扱いに注意。
+      </div>
+    </div>
+
+    <div id="log" class="log">起動しました。</div>
+    <div class="note">Panasonic 19Byte MQTT Remote</div>
+    <div class="brand">Panasonic</div>
+  </div>
+
+  <script>
+    let client = null;
+
+    const state = {
+      mode: 'cool',
+      temp: 25,
+      airflow: 'auto'
+    };
+
+    const modeLabels = {
+      cool: '冷房',
+      dry: '除湿',
+      heat: '暖房'
+    };
+
+    const airflowLabelsCool = {
+      auto: '自動',
+      '1': '水平',
+      '2': 'やや下',
+      '3': '中央',
+      '4': 'やや下強',
+      '5': '下向き'
+    };
+
+    const airflowLabelsHeat = {
+      auto: '自動',
+      '1': '弱',
+      '2': '中',
+      '3': '強',
+      '4': '最大'
+    };
+
+    const airflowCycleCool = ['auto', '1', '2', '3', '4', '5'];
+    const airflowCycleHeat = ['auto', '1', '2', '3', '4'];
+
+    const el = {
+      connDot: document.getElementById('connDot'),
+      connText: document.getElementById('connText'),
+      lastEvent: document.getElementById('lastEvent'),
+      modeLabel: document.getElementById('modeLabel'),
+      tempValue: document.getElementById('tempValue'),
+      tempDisplay: document.getElementById('tempDisplay'),
+      airflowLabel: document.getElementById('airflowLabel'),
+      topicLabel: document.getElementById('topicLabel'),
+      brokerUrl: document.getElementById('brokerUrl'),
+      username: document.getElementById('username'),
+      password: document.getElementById('password'),
+      topicCmd: document.getElementById('topicCmd'),
+      topicState: document.getElementById('topicState'),
+      log: document.getElementById('log'),
+      btnCool: document.getElementById('btnCool'),
+      btnDry: document.getElementById('btnDry'),
+      btnHeat: document.getElementById('btnHeat'),
+      btnAirflow: document.getElementById('btnAirflow'),
+      btnTempUp: document.getElementById('btnTempUp'),
+      btnTempDown: document.getElementById('btnTempDown'),
+      btnConnect: document.getElementById('btnConnect'),
+      btnSend: document.getElementById('btnSend'),
+      btnStop: document.getElementById('btnStop')
+    };
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      el.log.textContent = `[${time}] ${msg}\n` + el.log.textContent;
+    }
+
+    function saveSettings() {
+      const settings = {
+        brokerUrl: el.brokerUrl.value.trim(),
+        username: el.username.value.trim(),
+        password: el.password.value,
+        topicCmd: el.topicCmd.value.trim(),
+        topicState: el.topicState.value.trim()
+      };
+      localStorage.setItem('ac_mqtt_settings', JSON.stringify(settings));
+    }
+
+    function loadSettings() {
+      const raw = localStorage.getItem('ac_mqtt_settings');
+      if (!raw) return;
+      try {
+        const s = JSON.parse(raw);
+        el.brokerUrl.value = s.brokerUrl || '';
+        el.username.value = s.username || '';
+        el.password.value = s.password || '';
+        el.topicCmd.value = s.topicCmd || 'home/ac/cmd';
+        el.topicState.value = s.topicState || 'home/ac/state';
+      } catch (e) {
+        log('設定の読み込みに失敗');
+      }
+    }
+
+    function updateUi() {
+      el.modeLabel.textContent = modeLabels[state.mode] || '不明';
+      el.tempValue.textContent = state.temp;
+      el.tempDisplay.textContent = state.temp;
+      el.topicLabel.textContent = el.topicCmd.value.trim() || 'home/ac/cmd';
+
+      el.btnCool.classList.toggle('active', state.mode === 'cool');
+      el.btnDry.classList.toggle('active', state.mode === 'dry');
+      el.btnHeat.classList.toggle('active', state.mode === 'heat');
+
+      const labelMap = state.mode === 'heat' ? airflowLabelsHeat : airflowLabelsCool;
+      el.airflowLabel.textContent = labelMap[state.airflow] || state.airflow;
+    }
+
+    function setConnectionUi(connected) {
+      el.connDot.classList.toggle('ok', connected);
+      el.connDot.classList.toggle('ng', !connected);
+      el.connText.textContent = connected ? 'MQTT接続中' : '未接続';
+      el.btnConnect.textContent = connected ? '切断' : '接続';
+    }
+
+    function getNextAirflow() {
+      const cycle = state.mode === 'heat' ? airflowCycleHeat : airflowCycleCool;
+      const idx = cycle.indexOf(state.airflow);
+      return cycle[(idx + 1) % cycle.length];
+    }
+
+    function publishJson(obj) {
+      if (!client || !client.connected) {
+        log('MQTT未接続のため送信できません');
+        return;
+      }
+      const topic = el.topicCmd.value.trim() || 'home/ac/cmd';
+      const payload = JSON.stringify(obj);
+      client.publish(topic, payload);
+      log(`publish ${topic} => ${payload}`);
+    }
+
+    function connectMqtt() {
+      if (client && client.connected) {
+        client.end(true);
+        setConnectionUi(false);
+        log('MQTT切断');
+        return;
+      }
+
+      saveSettings();
+
+      const brokerUrl = el.brokerUrl.value.trim();
+      const username = el.username.value.trim();
+      const password = el.password.value;
+      const topicState = el.topicState.value.trim() || 'home/ac/state';
+
+      if (!brokerUrl || !username || !password) {
+        log('Broker URL / Username / Password を入れてください');
+        return;
+      }
+
+      client = mqtt.connect(brokerUrl, {
+        username,
+        password,
+        reconnectPeriod: 3000,
+        connectTimeout: 10000,
+        clean: true
+      });
+
+      client.on('connect', () => {
+        setConnectionUi(true);
+        log('MQTT接続成功');
+        client.subscribe(topicState, (err) => {
+          if (err) {
+            log('state購読失敗');
+            return;
+          }
+          log(`subscribe ${topicState}`);
+        });
+      });
+
+      client.on('message', (topic, payload) => {
+        const text = payload.toString();
+        log(`recv ${topic} <= ${text}`);
+        try {
+          const data = JSON.parse(text);
+          if (data.mode) state.mode = data.mode;
+          if (typeof data.temp === 'number') state.temp = data.temp;
+          if (data.mode === 'heat') {
+            if (data.fan) state.airflow = data.fan;
+          } else {
+            if (data.swing) state.airflow = data.swing;
+          }
+          if (data.event) {
+            el.lastEvent.textContent = `state: ${data.event}`;
+          }
+          updateUi();
+        } catch (e) {
+          log('state JSON解析失敗');
+        }
+      });
+
+      client.on('reconnect', () => {
+        log('MQTT再接続中...');
+      });
+
+      client.on('close', () => {
+        setConnectionUi(false);
+      });
+
+      client.on('error', (err) => {
+        log(`MQTT error: ${err.message}`);
+      });
+    }
+
+    el.btnCool.addEventListener('click', () => {
+      state.mode = 'cool';
+      if (!airflowCycleCool.includes(state.airflow)) state.airflow = 'auto';
+      updateUi();
+    });
+
+    el.btnDry.addEventListener('click', () => {
+      state.mode = 'dry';
+      if (!airflowCycleCool.includes(state.airflow)) state.airflow = 'auto';
+      updateUi();
+    });
+
+    el.btnHeat.addEventListener('click', () => {
+      state.mode = 'heat';
+      if (!airflowCycleHeat.includes(state.airflow)) state.airflow = 'auto';
+      updateUi();
+    });
+
+    el.btnAirflow.addEventListener('click', () => {
+      state.airflow = getNextAirflow();
+      updateUi();
+    });
+
+    el.btnTempUp.addEventListener('click', () => {
+      state.temp = Math.min(30, state.temp + 1);
+      updateUi();
+    });
+
+    el.btnTempDown.addEventListener('click', () => {
+      state.temp = Math.max(16, state.temp - 1);
+      updateUi();
+    });
+
+    el.btnConnect.addEventListener('click', connectMqtt);
+
+    el.btnSend.addEventListener('click', () => {
+      publishJson({
+        cmd: 'set',
+        mode: state.mode,
+        temp: state.temp,
+        airflow: state.airflow
+      });
+    });
+
+    el.btnStop.addEventListener('click', () => {
+      publishJson({ cmd: 'stop' });
+    });
+
+    [el.brokerUrl, el.username, el.password, el.topicCmd, el.topicState].forEach(input => {
+      input.addEventListener('change', saveSettings);
+    });
+
+    loadSettings();
+    updateUi();
+  </script>
+</body>
+</html>
