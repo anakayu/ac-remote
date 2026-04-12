@@ -437,21 +437,25 @@
       client = mqtt.connect(brokerUrl, {
         username,
         password,
+        clientId: 'webui_' + Math.random().toString(16).slice(2, 10),
         reconnectPeriod: 3000,
         connectTimeout: 10000,
-        clean: true
+        clean: true,
+        keepalive: 30
       });
 
       client.on('connect', () => {
         setConnectionUi(true);
         log('MQTT接続成功');
+        log('client.connected = ' + client.connected);
         client.subscribe(topicState, (err) => {
           if (err) {
-            log('state購読失敗');
+            log('state購読失敗: ' + (err.message || JSON.stringify(err)));
             return;
           }
           log(`subscribe ${topicState}`);
         });
+      });
       });
 
       client.on('message', (topic, payload) => {
@@ -477,10 +481,6 @@
 
       client.on('reconnect', () => {
         log('MQTT再接続中...');
-      });
-
-      client.on('close', () => {
-        setConnectionUi(false);
       });
 
       client.on('error', (err) => {
