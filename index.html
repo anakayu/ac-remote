@@ -542,7 +542,10 @@ el.btnSend.addEventListener('click', () => {
     
 el.btnStop.addEventListener('click', () => {
   publishJson({ cmd: 'stop' });
-});    
+  el.lastEvent.textContent = 'stop送信';
+  log('停止コマンド送信');
+}); 
+
 
     loadSettings();
     updateUi();
