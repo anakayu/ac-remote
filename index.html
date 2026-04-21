@@ -23,6 +23,7 @@
     }
 
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       padding: 16px;
@@ -46,7 +47,7 @@
       border-radius: 12px;
       padding: 14px 12px;
       margin-bottom: 18px;
-      min-height: 150px;
+      min-height: 170px;
       text-align: left;
       box-shadow: inset 0 0 0 2px var(--border);
     }
@@ -91,12 +92,11 @@
       font-weight: normal;
     }
 
-    .infoLine {
+    .infoBlock {
       margin-top: 10px;
       font-size: 18px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
+      display: grid;
+      gap: 6px;
     }
 
     .row {
@@ -126,6 +126,7 @@
     .heat { background: var(--heat); }
     .sub { background: #fff; font-size: 22px; }
     .tempBtn { font-size: 30px; font-weight: bold; padding: 12px 10px; }
+
     .tempStack {
       flex: 1;
       display: flex;
@@ -133,6 +134,7 @@
       gap: 10px;
       justify-content: center;
     }
+
     .tempValue {
       background: #fff;
       border-radius: 12px;
@@ -142,28 +144,33 @@
       padding: 14px 10px;
       box-shadow: var(--btnshadow);
     }
+
     .stop {
       background: var(--stop);
       border: 2px solid #f08aa0;
       font-size: 30px;
       font-weight: bold;
     }
+
     .send {
       background: var(--send);
       font-weight: bold;
     }
+
     .smallLabel {
       display: block;
       font-size: 14px;
       color: #555;
       margin-top: 4px;
     }
+
     .note {
       text-align: center;
       color: var(--muted);
       font-size: 14px;
       margin-top: 16px;
     }
+
     .brand {
       text-align: center;
       margin-top: 20px;
@@ -171,6 +178,7 @@
       font-weight: bold;
       color: #1d2a57;
     }
+
     .settings {
       margin-top: 16px;
       background: #fff;
@@ -178,16 +186,19 @@
       padding: 12px;
       box-shadow: var(--btnshadow);
     }
+
     .settings h3 {
       margin: 0 0 10px;
       font-size: 16px;
     }
+
     .settings label {
       display: block;
       font-size: 13px;
       margin: 8px 0 4px;
       color: #444;
     }
+
     .settings input {
       width: 100%;
       padding: 10px 12px;
@@ -195,12 +206,14 @@
       border-radius: 10px;
       font-size: 14px;
     }
+
     .settings .mini {
       font-size: 12px;
       color: #666;
       margin-top: 8px;
       line-height: 1.5;
     }
+
     .log {
       margin-top: 12px;
       font-size: 12px;
@@ -208,7 +221,7 @@
       background: #fff;
       border-radius: 12px;
       padding: 10px;
-      max-height: 160px;
+      max-height: 180px;
       overflow: auto;
       box-shadow: var(--btnshadow);
       white-space: pre-wrap;
@@ -223,10 +236,13 @@
         <div><span id="connDot" class="statusDot ng"></span><span id="connText">未接続</span></div>
         <div id="lastEvent">state待機中</div>
       </div>
+
       <div class="modeLine" id="modeLabel">冷房</div>
       <div class="tempLine"><span id="tempValue">25</span><span>.0℃</span></div>
-      <div class="infoLine">
-        <div>風向/風量 <span id="airflowLabel">自動</span></div>
+
+      <div class="infoBlock">
+        <div>風向 <span id="swingLabel">自動</span></div>
+        <div>風量 <span id="fanLabel">自動</span></div>
         <div id="topicLabel">home/ac/cmd</div>
       </div>
     </div>
@@ -238,17 +254,21 @@
     </div>
 
     <div class="row">
-      <button id="btnAirflow" class="sub">風向/風量<span class="smallLabel">切替</span></button>
+      <button id="btnSwing" class="sub">風向<span class="smallLabel">切替して即送信</span></button>
       <div class="tempStack">
         <button id="btnTempUp" class="tempBtn">▲</button>
         <div class="tempValue"><span id="tempDisplay">25</span>℃</div>
         <button id="btnTempDown" class="tempBtn">▼</button>
       </div>
+      <button id="btnFan" class="sub">風量<span class="smallLabel">切替して即送信</span></button>
+    </div>
+
+    <div class="row">
       <button id="btnConnect" class="sub">接続<span class="smallLabel">MQTT</span></button>
     </div>
 
     <div class="row">
-      <button id="btnSend" class="send">送信</button>
+      <button id="btnSend" class="send">送信<span class="smallLabel">モード/温度</span></button>
     </div>
 
     <div class="row">
@@ -257,6 +277,7 @@
 
     <div class="settings">
       <h3>MQTT設定</h3>
+
       <label for="brokerUrl">Broker URL</label>
       <input id="brokerUrl" type="text" placeholder="wss://xxxxx.s1.eu.hivemq.cloud:8884/mqtt" />
 
@@ -273,9 +294,9 @@
       <input id="topicState" type="text" value="home/ac/state" />
 
       <div class="mini">
-        GitHub Pages向けの試作用。<br>
-        初回は右上の接続ボタンでMQTTへ接続してから使う。<br>
-        ブラウザ直MQTTなので、公開運用では資格情報の扱いに注意。
+        初回は接続ボタンでMQTTへ接続してから使う。<br>
+        風向/風量は押した瞬間に送信。<br>
+        モード/温度は送信ボタンで送る。
       </div>
     </div>
 
@@ -290,7 +311,8 @@
     const state = {
       mode: 'cool',
       temp: 25,
-      airflow: 'auto'
+      swing: 'auto',
+      fan: 'auto'
     };
 
     const modeLabels = {
@@ -299,7 +321,7 @@
       heat: '暖房'
     };
 
-    const airflowLabelsCool = {
+    const swingLabels = {
       auto: '自動',
       '1': '水平',
       '2': 'やや下',
@@ -308,7 +330,7 @@
       '5': '下向き'
     };
 
-    const airflowLabelsHeat = {
+    const fanLabels = {
       auto: '自動',
       '1': '弱',
       '2': '中',
@@ -316,8 +338,8 @@
       '4': '最大'
     };
 
-    const airflowCycleCool = ['auto', '1', '2', '3', '4', '5'];
-    const airflowCycleHeat = ['auto', '1', '2', '3', '4'];
+    const swingCycle = ['auto', '1', '2', '3', '4', '5'];
+    const fanCycle = ['auto', '1', '2', '3', '4'];
 
     const el = {
       connDot: document.getElementById('connDot'),
@@ -326,7 +348,8 @@
       modeLabel: document.getElementById('modeLabel'),
       tempValue: document.getElementById('tempValue'),
       tempDisplay: document.getElementById('tempDisplay'),
-      airflowLabel: document.getElementById('airflowLabel'),
+      swingLabel: document.getElementById('swingLabel'),
+      fanLabel: document.getElementById('fanLabel'),
       topicLabel: document.getElementById('topicLabel'),
       brokerUrl: document.getElementById('brokerUrl'),
       username: document.getElementById('username'),
@@ -337,7 +360,8 @@
       btnCool: document.getElementById('btnCool'),
       btnDry: document.getElementById('btnDry'),
       btnHeat: document.getElementById('btnHeat'),
-      btnAirflow: document.getElementById('btnAirflow'),
+      btnSwing: document.getElementById('btnSwing'),
+      btnFan: document.getElementById('btnFan'),
       btnTempUp: document.getElementById('btnTempUp'),
       btnTempDown: document.getElementById('btnTempDown'),
       btnConnect: document.getElementById('btnConnect'),
@@ -380,14 +404,13 @@
       el.modeLabel.textContent = modeLabels[state.mode] || '不明';
       el.tempValue.textContent = state.temp;
       el.tempDisplay.textContent = state.temp;
+      el.swingLabel.textContent = swingLabels[state.swing] || state.swing;
+      el.fanLabel.textContent = fanLabels[state.fan] || state.fan;
       el.topicLabel.textContent = el.topicCmd.value.trim() || 'home/ac/cmd';
 
       el.btnCool.classList.toggle('active', state.mode === 'cool');
       el.btnDry.classList.toggle('active', state.mode === 'dry');
       el.btnHeat.classList.toggle('active', state.mode === 'heat');
-
-      const labelMap = state.mode === 'heat' ? airflowLabelsHeat : airflowLabelsCool;
-      el.airflowLabel.textContent = labelMap[state.airflow] || state.airflow;
     }
 
     function setConnectionUi(connected) {
@@ -397,21 +420,26 @@
       el.btnConnect.textContent = connected ? '切断' : '接続';
     }
 
-    function getNextAirflow() {
-      const cycle = state.mode === 'heat' ? airflowCycleHeat : airflowCycleCool;
-      const idx = cycle.indexOf(state.airflow);
-      return cycle[(idx + 1) % cycle.length];
+    function getNextSwing() {
+      const idx = swingCycle.indexOf(state.swing);
+      return swingCycle[(idx + 1) % swingCycle.length];
+    }
+
+    function getNextFan() {
+      const idx = fanCycle.indexOf(state.fan);
+      return fanCycle[(idx + 1) % fanCycle.length];
     }
 
     function publishJson(obj) {
       if (!client || !client.connected) {
         log('MQTT未接続のため送信できません');
-        return;
+        return false;
       }
       const topic = el.topicCmd.value.trim() || 'home/ac/cmd';
       const payload = JSON.stringify(obj);
       client.publish(topic, payload);
       log(`publish ${topic} => ${payload}`);
+      return true;
     }
 
     function connectMqtt() {
@@ -456,7 +484,7 @@
           log(`subscribe ${topicState}`);
         });
       });
-   
+
       client.on('message', (topic, payload) => {
         const text = payload.toString();
         log(`recv ${topic} <= ${text}`);
@@ -464,11 +492,8 @@
           const data = JSON.parse(text);
           if (data.mode) state.mode = data.mode;
           if (typeof data.temp === 'number') state.temp = data.temp;
-          if (data.mode === 'heat') {
-            if (data.fan) state.airflow = data.fan;
-          } else {
-            if (data.swing) state.airflow = data.swing;
-          }
+          if (data.swing) state.swing = data.swing;
+          if (data.fan) state.fan = data.fan;
           if (data.event) {
             el.lastEvent.textContent = `state: ${data.event}`;
           }
@@ -487,27 +512,76 @@
       });
     }
 
+    function sendModeTemp() {
+      const ok = publishJson({
+        cmd: 'set',
+        mode: state.mode,
+        temp: state.temp,
+        swing: state.swing,
+        fan: state.fan,
+        lastControl: state.mode === 'heat' ? 'fan' : 'swing'
+      });
+
+      if (ok) {
+        el.lastEvent.textContent = 'mode/temp送信';
+      }
+    }
+
+    function sendSwingNow() {
+      const ok = publishJson({
+        cmd: 'set',
+        mode: state.mode,
+        temp: state.temp,
+        swing: state.swing,
+        fan: state.fan,
+        lastControl: 'swing'
+      });
+
+      if (ok) {
+        el.lastEvent.textContent = `風向送信: ${swingLabels[state.swing] || state.swing}`;
+      }
+    }
+
+    function sendFanNow() {
+      const ok = publishJson({
+        cmd: 'set',
+        mode: state.mode,
+        temp: state.temp,
+        swing: state.swing,
+        fan: state.fan,
+        lastControl: 'fan'
+      });
+
+      if (ok) {
+        el.lastEvent.textContent = `風量送信: ${fanLabels[state.fan] || state.fan}`;
+      }
+    }
+
     el.btnCool.addEventListener('click', () => {
       state.mode = 'cool';
-      if (!airflowCycleCool.includes(state.airflow)) state.airflow = 'auto';
       updateUi();
     });
 
     el.btnDry.addEventListener('click', () => {
       state.mode = 'dry';
-      if (!airflowCycleCool.includes(state.airflow)) state.airflow = 'auto';
       updateUi();
     });
 
     el.btnHeat.addEventListener('click', () => {
       state.mode = 'heat';
-      if (!airflowCycleHeat.includes(state.airflow)) state.airflow = 'auto';
       updateUi();
     });
 
-    el.btnAirflow.addEventListener('click', () => {
-      state.airflow = getNextAirflow();
+    el.btnSwing.addEventListener('click', () => {
+      state.swing = getNextSwing();
       updateUi();
+      sendSwingNow();
+    });
+
+    el.btnFan.addEventListener('click', () => {
+      state.fan = getNextFan();
+      updateUi();
+      sendFanNow();
     });
 
     el.btnTempUp.addEventListener('click', () => {
@@ -522,30 +596,17 @@
 
     el.btnConnect.addEventListener('click', connectMqtt);
 
-el.btnSend.addEventListener('click', () => {
-  const payload = {
-    cmd: 'set',
-    mode: state.mode,
-    temp: state.temp
-  };
+    el.btnSend.addEventListener('click', () => {
+      sendModeTemp();
+    });
 
-  if (state.mode === 'heat') {
-    payload.fan = state.airflow;
-    payload.lastControl = 'fan';
-  } else {
-    payload.swing = state.airflow;
-    payload.lastControl = 'swing';
-  }
-
-  publishJson(payload);
-});
-    
-el.btnStop.addEventListener('click', () => {
-  publishJson({ cmd: 'stop' });
-  el.lastEvent.textContent = 'stop送信';
-  log('停止コマンド送信');
-}); 
-
+    el.btnStop.addEventListener('click', () => {
+      const ok = publishJson({ cmd: 'stop' });
+      if (ok) {
+        el.lastEvent.textContent = 'stop送信';
+        log('停止コマンド送信');
+      }
+    });
 
     loadSettings();
     updateUi();
